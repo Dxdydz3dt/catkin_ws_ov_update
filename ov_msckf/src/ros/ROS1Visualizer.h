@@ -115,6 +115,9 @@ public:
 
   /// OVVU: Callback for wheel speeds information
   void callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &msg);
+  /// UGS: Callback for gnss information
+  void callback_gnss(const sensor_msgs::NavSatFix::ConstPtr &msg);
+
 
 protected:
   /// Publish the current state
@@ -158,7 +161,7 @@ protected:
   // OVVU: Out subscribers for Ackermann drive and wheel speeds messages
   ros::Subscriber sub_ackermann_drive;
   ros::Subscriber sub_wheel_speeds;
-
+  ros::Subscriber sub_gnss; // UGS gnss subscriber
   // For path viz
   unsigned int poses_seq_imu = 0;
   std::vector<geometry_msgs::PoseStamped> poses_imu;

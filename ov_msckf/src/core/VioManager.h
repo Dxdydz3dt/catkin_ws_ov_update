@@ -50,6 +50,7 @@
 #include "update/UpdaterMSCKF.h"
 #include "update/UpdaterSLAM.h"
 #include "update/UpdaterVehicle.h" // OVVU
+#include "update/UpdaterGNSS.h" // UGS
 #include "update/UpdaterZeroVelocity.h"
 
 #include "VioManagerOptions.h"
@@ -70,6 +71,10 @@ class VioManager {
   friend class ROS2Visualizer;
 
 public:
+  /**UGS
+   * @brief GNSS constructor, will load all GNSS Data
+   */
+  void gnss_data(const ov_core::gnssdata &gnss_data) {}
   /**
    * @brief Default constructor, will load all configuration variables
    * @param params_ Parameters loaded from either ROS or CMDLINE
@@ -129,6 +134,11 @@ public:
    * @param timestamp Time that this image was collected
    * @param camids Camera ids that we have simulated measurements for
    * @param feats Raw uv simulated measurements
+   */
+  void feed_measurement_gnss(const ov_core::gnssdata &message);
+  /**
+   * @brief Feed function for our GNSS data UGS
+   * @param message Contains our timestamp and GNSS data(Altitude, Latitude, Longitude)
    */
   void feed_measurement_simulation(double timestamp, const std::vector<int> &camids,
                                    const std::vector<std::vector<std::pair<size_t, Eigen::VectorXf>>> &feats);
@@ -361,6 +371,8 @@ protected:
   /// OVVU: Queue up ackermann drive measurements
   std::deque<ov_core::AckermannDriveData> ackermann_drive_queue;
 
+  /// UGS: Our GNSS updater UGS
+  std::shared_ptr<UpdaterGNSS> updaterGNSS;
   /// This is the queue of measurement times that have come in since we starting doing initialization
   /// After we initialize, we will want to prop & update to the latest timestamp quickly
   std::vector<double> camera_queue_init;

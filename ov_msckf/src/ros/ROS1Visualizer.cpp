@@ -190,6 +190,12 @@ void ROS1Visualizer::setup_subscribers(std::shared_ptr<ov_core::YamlParser> pars
     PRINT_DEBUG("subscribing to wheel speeds: %s\n", topic_wheel_speeds.c_str());
     sub_wheel_speeds = _nh->subscribe(topic_wheel_speeds, 1000, &ROS1Visualizer::callback_wheel_speeds, this);
   }
+   
+  std::string topic_gnss;
+ _nh->param<std::string>("topic_gnss", topic_gnss, "/navsat/fix");
+  //parser->parse_external("relative_config_gnss", "/ublox_driver/receiver_lla", "rostopic", topic_gnss);
+  sub_gnss = _nh->subscribe(topic_gnss, 100, &ROS1Visualizer::callback_gnss, this);
+
 }
 
 void ROS1Visualizer::visualize() {
@@ -563,6 +569,19 @@ void ROS1Visualizer::callback_wheel_speeds(const ov_core::WheelSpeedsConstPtr &m
   // Send it to our VIO system
   _app->feed_measurement_wheel_speeds(message);
 }
+
+void ROS1Visualizer::callback_gnss(const sensor_msgs::NavSatFix::ConstPtr &msg) {
+  // UGS: Convert into the correct format
+  ov_core::gnssdata message;
+  message.timestamp = msg->header.stamp.toSec();
+  message.lat = msg->latitude;
+  message.log = msg->longitude;
+  message.alt = msg->altitude;
+  //send it to our VIO system
+  _app->feed_measurement_gnss(message);
+
+}
+
 
 void ROS1Visualizer::publish_state() {
 

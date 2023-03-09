@@ -84,6 +84,7 @@ list(APPEND LIBRARY_SOURCES
         src/update/UpdaterSLAM.cpp
         src/update/UpdaterZeroVelocity.cpp
         src/update/UpdaterVehicle.cpp # OVVU
+        src/update/UpdaterGNSS.cpp #GNS
 )
 if (catkin_FOUND AND ENABLE_ROS)
     list(APPEND LIBRARY_SOURCES src/ros/ROS1Visualizer.cpp)

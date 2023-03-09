@@ -9,10 +9,10 @@
     <!-- mono or stereo and what ros bag to play -->
     <arg name="max_cameras" default="1" />
     <arg name="use_stereo"  default="false" />
-    <arg name="bag_start"   default="0" /> <!-- v1-2: 0, mh1: 40, mh2: 35, mh3: 17.5, mh4-5: 15 -->
+    <arg name="bag_start"   default="20" /> <!-- v1-2: 0, mh1: 40, mh2: 35, mh3: 17.5, mh4-5: 15 -->
     <arg name="bag_durr"    default="-1" />
-    <arg name="dataset"     default="eschborn2" /> <!-- V1_01_easy, V1_02_medium, V2_02_medium -->
-    <arg name="bag"         default="/data/datasets/conti/2021-04-20_Parking_and_atCity/2021-04-20-15-10-59-607_F-TZ_9900_CamLoc_Eschborn/eschborn2.bag" />
+    <arg name="dataset"     default="hk.bag" /> <!-- V1_01_easy, V1_02_medium, V2_02_medium -->
+    <arg name="bag"         default="/home/malik/catkin_ws_ov/dataset/HK_dataset/HK_Night/hk.bag" />
 
     <!-- saving trajectory path and timing information -->
     <arg name="dosave"      default="true" />
@@ -28,7 +28,7 @@
 
     <!-- imu starting thresholds -->
     <arg name="init_window_time"  default="0.75" />
-    <arg name="init_imu_thresh"   default="0.12" />
+    <arg name="init_imu_thresh"   default="0.5" />
     
     <!-- Some more params -->
     <arg name="calib_cam_timeoffset"    default="false" />

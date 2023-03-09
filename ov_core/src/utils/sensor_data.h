@@ -29,6 +29,18 @@
 namespace ov_core {
 
 /**
+ * @brief Struct for  GNSS (lathitude,longitude, altitude)
+ */
+
+struct gnssdata {
+
+  /// Timestamp of the reading
+  double timestamp;
+  double lat;
+  double log;
+  double alt;
+};
+/**
  * @brief Struct for a single imu measurement (time, wm, am)
  */
 struct ImuData {

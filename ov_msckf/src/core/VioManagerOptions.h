@@ -500,6 +500,9 @@ struct VioManagerOptions {
     // Basic OpenVINS algorithm with 3DOF odometry (x, y, yaw) update using differential drive model
     VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE,
     // When the mode is not known we exit the program
+    // UGS
+    VEHICLE_UPDATE_GNSS,
+    // Basic OpenVINS algorithm with speed update, propagating the state at every speed measurement, and GNSS
     VEHICLE_UPDATE_UNKNOWN,
   };
 
@@ -523,6 +526,8 @@ struct VioManagerOptions {
       return VEHICLE_UPDATE_PREINTEGRATED_SINGLE_TRACK;
     } else if (mode == "VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE") {
       return VEHICLE_UPDATE_PREINTEGRATED_DIFFERENTIAL_DRIVE;
+    } else if (mode == "VEHICLE_UPDATE_GNSS") {
+      return VEHICLE_UPDATE_GNSS; // UGS
     } else {
       return VEHICLE_UPDATE_UNKNOWN;
     }
@@ -619,7 +624,10 @@ struct VioManagerOptions {
 
   /// Track length (m) between both rear wheels
   double track_length = 1.568;
-
+  /// UGS
+  double lat;
+  double log;
+  double alt;
   /**
    * @brief This function will load print out all vehicle updates settings loaded.
    * This allows for visual checking that everything was loaded properly from ROS/CMD parsers.

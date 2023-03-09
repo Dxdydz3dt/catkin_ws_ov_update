@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
   std::string topic_imu;
   nh->param<std::string>("topic_imu", topic_imu, "/imu0");
   parser->parse_external("relative_config_imu", "imu0", "rostopic", topic_imu);
-
+  parser->parse_config("/imu0", topic_imu);
   // Our camera topics (stereo pairs and non-stereo mono)
   std::vector<std::pair<size_t, std::string>> topic_cameras;
   if (params.state_options.num_cameras == 2) {
@@ -117,9 +117,14 @@ int main(int argc, char **argv) {
   std::string topic_wheel_speeds;
   nh->param<std::string>("topic_wheel_speeds", topic_wheel_speeds, "/wheel_speeds0");
 
+  // UGS:  Our GNSS topic
+  std::string topic_gnss;
+  nh->param<std::string>("topic_gnss", topic_gnss, "/navsat/fix");
+  // parser->parse_external("relative_config_gnss", "/ublox_node/fix", "rostopic", topic_gnss);
+
   // Location of the ROS bag we want to read in
   std::string path_to_bag;
-  nh->param<std::string>("path_bag", path_to_bag, "/home/patrick/datasets/eth/V1_01_easy.bag");
+  nh->param<std::string>("path_bag", path_to_bag, "/home/malik/catkin_ws_ov/dataset/HK_dataset/HK_Night/hk.bag");
   PRINT_DEBUG("ros bag path is: %s\n", path_to_bag.c_str());
 
   // Load groundtruth if we have it
@@ -195,19 +200,30 @@ int main(int argc, char **argv) {
     PRINT_ERROR(RED "rosbag has %d messages for wheel speeds  topic: %s, but vehicle_updat_mode is set to %s.\n" RESET,
                 (int)view_wheel_speeds.get()->size(), topic_wheel_speeds.c_str(), params.vehicle_update_mode_string.c_str());
   }
+
   auto view_wheel_speeds_iter = std::make_shared<rosbag::View::iterator>(view_wheel_speeds->begin());
+
+  // UGS: Open our iterators for GNSS
+  auto view_gnss = std::make_shared<rosbag::View>(bag, rosbag::TopicQuery(topic_gnss), time_init, time_finish);
+  auto view_gnss_iter = std::make_shared<rosbag::View::iterator>(view_gnss->begin());
 
   // Record the current measurement timestamps. OVVU: In comparison to the original implementation we only instantiate the current message
   // without incrementing the iterator once. This way the iterators in view_iters point at the current message instead of the next.
   // msg_images_next is instantiated in the main loop, which is needed for determining the next images in case of images drops.
   sensor_msgs::Imu::ConstPtr msg_imu_current;
   // sensor_msgs::Imu::ConstPtr msg_imu_next;
+  //UGS
+  sensor_msgs::NavSatFix::ConstPtr msg_gnss_current;
+
   std::vector<sensor_msgs::Image::ConstPtr> msg_images_current;
   // std::vector<sensor_msgs::Image::ConstPtr> msg_images_next;
   // OVVU: We have to dereference our shared pointers of the respective iterator, whenever accesing its data
   msg_imu_current = (*view_imu_iter)->instantiate<sensor_msgs::Imu>();
   // (*view_imu_iter)++;
   // msg_imu_next = (*view_imu_iter)->instantiate<sensor_msgs::Imu>();
+  //UGS
+  msg_gnss_current = (*view_gnss_iter)->instantiate<sensor_msgs::NavSatFix>();
+
   for (int i = 0; i < params.state_options.num_cameras; i++) {
     msg_images_current.emplace_back((*view_cameras_iterators.at(i))->instantiate<sensor_msgs::Image>());
     // (*view_cameras_iterators.at(i))++;
@@ -235,6 +251,8 @@ int main(int argc, char **argv) {
   // view_iters share the same count because view_iters uses shared_ptr
   std::vector<std::shared_ptr<rosbag::View::iterator>> view_iters;
   view_iters.push_back(view_imu_iter);
+  // UGS
+  view_iters.push_back(view_gnss_iter);
   for (const auto &view_cam_iter : view_cameras_iterators) {
     view_iters.push_back(view_cam_iter);
   }
@@ -251,6 +269,9 @@ int main(int argc, char **argv) {
     bool should_stop = false;
     if ((*view_imu_iter) == view_imu->end()) {
       should_stop = true;
+    }
+    if ((*view_gnss_iter)==view_gnss->end()){
+    should_stop = true;
     }
     for (int i = 0; i < params.state_options.num_cameras; i++) {
       if ((*view_cameras_iterators.at(i)) == view_cameras.at(i)->end()) {
@@ -286,7 +307,12 @@ int main(int argc, char **argv) {
         // check all camera timestamps
         auto msg = (*iter)->instantiate<sensor_msgs::Image>();
         time = msg->header.stamp.toSec();
+      } else if ((*iter)->isType<sensor_msgs::NavSatFix>()) {
+        // UGS: check all gnss timestamps
+        auto msg = (*iter)->instantiate<sensor_msgs::NavSatFix>();
+        time = msg->header.stamp.toSec();
       }
+
       if (time < time_min) {
         time_min = time;
         iter_min = iter;
@@ -298,6 +324,7 @@ int main(int argc, char **argv) {
     bool should_process_ackermann_drive = false;
     bool should_process_wheel_speeds = false;
     bool should_process_cams = false;
+    bool should_process_gnss = false; // UGS: flag to perform execution
     if ((*iter_min)->isType<sensor_msgs::Imu>()) {
       should_process_imu = true;
     } else if ((*iter_min)->isType<ackermann_msgs::AckermannDriveStamped>()) {
@@ -306,8 +333,9 @@ int main(int argc, char **argv) {
       should_process_wheel_speeds = true;
     } else if ((*iter_min)->isType<sensor_msgs::Image>()) {
       should_process_cams = true;
+    } else if ((*iter_min)->isType<sensor_msgs::NavSatFix>()) {
+      should_process_gnss = true;
     }
-
     if (should_process_imu) {
       viz->callback_inertial(msg_imu_current);
       (*view_imu_iter)++;
@@ -331,7 +359,13 @@ int main(int argc, char **argv) {
       msg_wheel_speeds_current = (*view_wheel_speeds_iter)->instantiate<WheelSpeeds>();
       continue;
     }
-
+    if (should_process_gnss) {
+    viz->callback_gnss(msg_gnss_current);
+    (*view_gnss_iter)++;
+      // ASTODO check if this dereferences a nullptr
+    msg_gnss_current = (*view_gnss_iter)->instantiate<sensor_msgs::NavSatFix>();
+    continue;
+    }
     // If we are stereo, then we should collect both the left and right
     if (should_process_cams) {
 

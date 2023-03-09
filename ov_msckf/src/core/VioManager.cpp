@@ -140,6 +140,8 @@ VioManager::VioManager(VioManagerOptions &params_) : thread_init_running(false),
   if (params.vehicle_update_mode != params.VEHICLE_UPDATE_NONE && params.vehicle_update_mode != params.VEHICLE_UPDATE_UNKNOWN) {
     updaterVehicle = std::make_shared<UpdaterVehicle>(params, propagator);
   }
+  // UGS: GNSS updates
+    updaterGNSS = std::make_shared<UpdaterGNSS>(params_, propagator);
 }
 
 void VioManager::feed_measurement_simulation(double timestamp, const std::vector<int> &camids,
@@ -211,7 +213,9 @@ void VioManager::feed_measurement_wheel_speeds(const ov_core::WheelSpeedsData &m
     updaterVehicle->feed_wheel_speeds(message);
   }
 }
-
+//UGS
+void VioManager::feed_measurement_gnss(const ov_core::gnssdata &message) { updaterGNSS->process_gnss(message); }
+//UGS
 void VioManager::track_image_and_update(const ov_core::CameraData &message_const) {
 
   // Start timing
@@ -284,7 +288,8 @@ void VioManager::do_feature_propagate_update(const ov_core::CameraData &message)
   //===================================================================================
   // State propagation, and clone augmentation
   //===================================================================================
-
+  // UGS
+  
   // Return if the camera measurement is out of order
   if (state->_timestamp > message.timestamp) {
     PRINT_WARNING(YELLOW "image received out of order, unable to do anything (prop dt = %3f)\n" RESET,
